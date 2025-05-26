@@ -2,6 +2,9 @@
 #define MPU6050_H
 
 #include "driver/i2c.h"
+#include "driver/ledc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 void mpu6050_init();
 void mpu6050_read_raw(int16_t *ax, int16_t *ay, int16_t *az,

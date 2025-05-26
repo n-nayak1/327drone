@@ -13,7 +13,7 @@ void app_main(void) {
 
     while (1) {
         mpu6050_update();      // Read new sensor values
-        basic_feedback(MOTOR1_CHANNEL);      // Run feedback control based on ax
+        all_motor_feedback();      // Run feedback control based on ax
         vTaskDelay(pdMS_TO_TICKS(100));  // Loop ~10 Hz
         
         // const imu_data_t* imu = mpu6050_get_data();

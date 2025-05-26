@@ -2,12 +2,13 @@
 #include "motor_control.h"
 #include "mpu6050.h"
 #include <stdio.h>
+#include <math.h>
 
 // PID constants (P-only for now)
-#define Kp 20.0f
-#define BASE_THROTTLE 50.0f
-#define MAX_THROTTLE 80.0f
-#define MIN_THROTTLE 20.0f
+#define Kp 50.0f
+#define BASE_THROTTLE 25.0f
+#define MAX_THROTTLE 100.0f
+#define MIN_THROTTLE 0.0f
 
 void basic_feedback(ledc_channel_t channel) {
     const imu_data_t* imu = mpu6050_get_data();
@@ -35,10 +36,10 @@ void all_motor_feedback() {
     float roll_corr  = Kp * roll_error;
 
     // Each motor's correction = weighted sum of pitch + roll
-    float m1_throttle = BASE_THROTTLE - pitch_corr - roll_corr; // Front Left
+    float m1_throttle = BASE_THROTTLE + pitch_corr + roll_corr; // Front Left
     float m2_throttle = BASE_THROTTLE - pitch_corr + roll_corr; // Front Right
-    float m3_throttle = BASE_THROTTLE + pitch_corr - roll_corr; // Back Left
-    float m4_throttle = BASE_THROTTLE + pitch_corr + roll_corr; // Back Right
+    float m3_throttle = BASE_THROTTLE - pitch_corr - roll_corr; // Back Left
+    float m4_throttle = BASE_THROTTLE + pitch_corr - roll_corr; // Back Right
 
     // Clamp throttle to safe range
     m1_throttle = fminf(fmaxf(m1_throttle, MIN_THROTTLE), MAX_THROTTLE);
@@ -53,7 +54,7 @@ void all_motor_feedback() {
     motor_set_speed(MOTOR4_CHANNEL, m4_throttle);
 
     // Debug print
-    printf("[Feedback] ax: %.2f | ay: %.2f\n", imu->ax, imu->ay);
+    printf("[Feedback] ax: %.2f | ay: %.2f | az: %.2f\n", imu->ax, imu->ay, imu->az);
     printf("M1: %.1f | M2: %.1f | M3: %.1f | M4: %.1f\n",
            m1_throttle, m2_throttle, m3_throttle, m4_throttle);
 }
