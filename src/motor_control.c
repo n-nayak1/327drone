@@ -50,14 +50,14 @@ void motor_set_speed(ledc_channel_t channel, float percent) {
     ledc_update_duty(PWM_MODE, channel);
 }
 
-void motor_test(void) {
+void motor_test(ledc_channel_t channel) {
     for (int i = 0; i <= 100; i += 10) {
-        motor_set_speed(MOTOR1_CHANNEL, i);
+        motor_set_speed(channel, i);
         printf("Throttle: %d%%\n", i);
         vTaskDelay(pdMS_TO_TICKS(300));
     }
     for (int i = 100; i >= 0; i -= 10) {
-        motor_set_speed(MOTOR1_CHANNEL, i);
+        motor_set_speed(channel, i);
         printf("Throttle: %d%%\n", i);
         vTaskDelay(pdMS_TO_TICKS(300));
     }

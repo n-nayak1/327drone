@@ -6,11 +6,14 @@
 
 void app_main(void) {
     motor_init(MOTOR1_PIN, MOTOR1_CHANNEL);
+    motor_init(MOTOR2_PIN, MOTOR2_CHANNEL);
+    motor_init(MOTOR3_PIN, MOTOR3_CHANNEL);
+    motor_init(MOTOR4_PIN, MOTOR4_CHANNEL);
     mpu6050_init();
 
     while (1) {
         mpu6050_update();      // Read new sensor values
-        basic_feedback();      // Run feedback control based on ax
+        basic_feedback(MOTOR1_CHANNEL);      // Run feedback control based on ax
         vTaskDelay(pdMS_TO_TICKS(100));  // Loop ~10 Hz
         
         // const imu_data_t* imu = mpu6050_get_data();
@@ -18,6 +21,6 @@ void app_main(void) {
         // imu->ax, imu->ay, imu->az,
         // imu->gx, imu->gy, imu->gz);
 
-        // motor_test();
+        // motor_test(MOTOR1_CHANNEL);
     }
 }
