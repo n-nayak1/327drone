@@ -5,16 +5,16 @@
 #define PWM_MODE           LEDC_HIGH_SPEED_MODE
 
 // MOTOR CONSTANTS
-// #define PWM_FREQ_HZ        50
-// #define PWM_RESOLUTION     LEDC_TIMER_16_BIT
-// #define DUTY_MIN           3277  // ~1.0 ms
-// #define DUTY_MAX           (DUTY_MIN + ((6553 - DUTY_MIN) * 0.6f))  // 100% throttle cap (~1.3 ms)
+#define PWM_FREQ_HZ        50
+#define PWM_RESOLUTION     LEDC_TIMER_16_BIT
+#define DUTY_MIN           3277  // ~1.0 ms
+#define DUTY_MAX           (DUTY_MIN + ((6553 - DUTY_MIN) * 1.0f))  // 100% throttle cap (~1.3 ms)
 
 // LED CONSTANTS
-#define PWM_FREQ_HZ        5000
-#define PWM_RESOLUTION     LEDC_TIMER_10_BIT
-#define DUTY_MIN           0
-#define DUTY_MAX           1023
+// #define PWM_FREQ_HZ        5000
+// #define PWM_RESOLUTION     LEDC_TIMER_10_BIT
+// #define DUTY_MIN           0
+// #define DUTY_MAX           1023
 
 
 

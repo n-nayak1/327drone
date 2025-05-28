@@ -6,7 +6,7 @@
 
 // PID constants (P-only for now)
 #define Kp 50.0f
-#define BASE_THROTTLE 25.0f
+#define BASE_THROTTLE 50.0f
 #define MAX_THROTTLE 100.0f
 #define MIN_THROTTLE 0.0f
 
