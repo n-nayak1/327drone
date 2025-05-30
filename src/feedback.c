@@ -5,56 +5,86 @@
 #include <math.h>
 
 // PID constants (P-only for now)
-#define Kp 50.0f
 #define BASE_THROTTLE 50.0f
 #define MAX_THROTTLE 100.0f
 #define MIN_THROTTLE 0.0f
 
-void basic_feedback(ledc_channel_t channel) {
-    const imu_data_t* imu = mpu6050_get_data();
+// PID constants for each axis
+static const float Kp_pitch = 1.0f, Ki_pitch = 0.0f, Kd_pitch = 0.1f;
+static const float Kp_roll  = 1.0f, Ki_roll  = 0.0f, Kd_roll  = 0.1f;
+static const float Kp_yaw   = 1.0f, Ki_yaw   = 0.0f, Kd_yaw   = 0.1f;
 
-    float error = 0.0f - imu->ax;           // Desired is 0 (level)
-    float correction = Kp * error;
-    float throttle = BASE_THROTTLE + correction;
+// Error tracking variables
+static float pitch_integral = 0, pitch_last = 0;
+static float roll_integral  = 0, roll_last  = 0;
+static float yaw_integral   = 0, yaw_last   = 0;
 
-    if (throttle > MAX_THROTTLE) throttle = MAX_THROTTLE;
-    if (throttle < MIN_THROTTLE) throttle = MIN_THROTTLE;
+void apply_pid_feedback(control_axis_t axis, float measured, float setpoint,
+                        float Kp, float Ki, float Kd,
+                        float* integral_error, float* last_error) {
+    float error = setpoint - measured;
+    *integral_error += error;
+    float derivative = error - *last_error;
+    *last_error = error;
 
-    motor_set_speed(MOTOR1_CHANNEL, throttle);
+    float correction = Kp * error + Ki * (*integral_error) + Kd * derivative;
 
-    printf("[Feedback] ax: %.3f | error: %.3f | throttle: %.2f%%\n",
-           imu->ax, error, throttle);
+    // Start with base throttle
+    float m1 = BASE_THROTTLE;
+    float m2 = BASE_THROTTLE;
+    float m3 = BASE_THROTTLE;
+    float m4 = BASE_THROTTLE;
+
+    // Apply correction to motors depending on the axis
+    switch (axis) {
+        case AXIS_PITCH:
+            // Forward/backward tilt
+            m1 += correction;  // Front Left
+            m2 += correction;  // Front Right
+            m3 -= correction;  // Back Left
+            m4 -= correction;  // Back Right
+            break;
+        case AXIS_ROLL:
+            // Left/right tilt
+            m1 += correction;  // Front Left
+            m2 -= correction;  // Front Right
+            m3 += correction;  // Back Left
+            m4 -= correction;  // Back Right
+            break;
+        case AXIS_YAW:
+            // Opposing motor pairs spin faster/slower
+            m1 += correction;
+            m2 -= correction;
+            m3 += correction;
+            m4 -= correction;
+            break;
+    }
+
+    // Clamp each motor
+    m1 = fminf(fmaxf(m1, MIN_THROTTLE), MAX_THROTTLE);
+    m2 = fminf(fmaxf(m2, MIN_THROTTLE), MAX_THROTTLE);
+    m3 = fminf(fmaxf(m3, MIN_THROTTLE), MAX_THROTTLE);
+    m4 = fminf(fmaxf(m4, MIN_THROTTLE), MAX_THROTTLE);
+
+    // Set motor speeds
+    motor_set_speed(MOTOR1_CHANNEL, m1);
+    motor_set_speed(MOTOR2_CHANNEL, m2);
+    motor_set_speed(MOTOR3_CHANNEL, m3);
+    motor_set_speed(MOTOR4_CHANNEL, m4);
+
+    // Optional debug
+    printf("[PID] axis: %d | error: %.2f | correction: %.2f\n", axis, error, correction);
 }
 
-void all_motor_feedback() {
-    const imu_data_t* imu = mpu6050_get_data();
 
-    float pitch_error = 0.0f - imu->ax;  // Tilt forward/back
-    float roll_error  = 0.0f - imu->ay;  // Tilt left/right
-
-    float pitch_corr = Kp * pitch_error;
-    float roll_corr  = Kp * roll_error;
-
-    // Each motor's correction = weighted sum of pitch + roll
-    float m1_throttle = BASE_THROTTLE + pitch_corr + roll_corr; // Front Left
-    float m2_throttle = BASE_THROTTLE - pitch_corr + roll_corr; // Front Right
-    float m3_throttle = BASE_THROTTLE - pitch_corr - roll_corr; // Back Left
-    float m4_throttle = BASE_THROTTLE + pitch_corr - roll_corr; // Back Right
-
-    // Clamp throttle to safe range
-    m1_throttle = fminf(fmaxf(m1_throttle, MIN_THROTTLE), MAX_THROTTLE);
-    m2_throttle = fminf(fmaxf(m2_throttle, MIN_THROTTLE), MAX_THROTTLE);
-    m3_throttle = fminf(fmaxf(m3_throttle, MIN_THROTTLE), MAX_THROTTLE);
-    m4_throttle = fminf(fmaxf(m4_throttle, MIN_THROTTLE), MAX_THROTTLE);
-
-    // Set PWM output
-    motor_set_speed(MOTOR1_CHANNEL, m1_throttle);
-    motor_set_speed(MOTOR2_CHANNEL, m2_throttle);
-    motor_set_speed(MOTOR3_CHANNEL, m3_throttle);
-    motor_set_speed(MOTOR4_CHANNEL, m4_throttle);
-
-    // Debug print
-    printf("[Feedback] ax: %.2f | ay: %.2f | az: %.2f\n", imu->ax, imu->ay, imu->az);
-    printf("M1: %.1f | M2: %.1f | M3: %.1f | M4: %.1f\n",
-           m1_throttle, m2_throttle, m3_throttle, m4_throttle);
+void control_loop(float roll, float pitch, float yaw) {
+    apply_pid_feedback(AXIS_PITCH, pitch, 0.0f,
+                       Kp_pitch, Ki_pitch, Kd_pitch,
+                       &pitch_integral, &pitch_last);
+    apply_pid_feedback(AXIS_ROLL, roll, 0.0f,
+                       Kp_roll, Ki_roll, Kd_roll,
+                       &roll_integral, &roll_last);
+    apply_pid_feedback(AXIS_YAW, yaw, 0.0f,
+                       Kp_yaw, Ki_yaw, Kd_yaw,
+                       &yaw_integral, &yaw_last);
 }

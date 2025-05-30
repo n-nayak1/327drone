@@ -5,7 +5,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-void basic_feedback(ledc_channel_t channel);
-void all_motor_feedback();
+typedef enum {
+    AXIS_PITCH,
+    AXIS_ROLL,
+    AXIS_YAW
+} control_axis_t;
+
+void control_loop(float roll, float pitch, float yaw);
+
 
 #endif
