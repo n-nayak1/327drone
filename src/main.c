@@ -2,6 +2,7 @@
 #include "motor_control.h"
 #include "mpu6050.h"
 #include "feedback.h"
+#include "filter.h"
 
 
 void app_main(void) {
@@ -10,17 +11,21 @@ void app_main(void) {
     motor_init(MOTOR3_PIN, MOTOR3_CHANNEL);
     motor_init(MOTOR4_PIN, MOTOR4_CHANNEL);
     mpu6050_init();
+    filter_init();  // or whatever loop rate in Hz
+
 
     while (1) {
-        mpu6050_update();      // Read new sensor values
-        all_motor_feedback();      // Run feedback control based on ax
-        vTaskDelay(pdMS_TO_TICKS(100));  // Loop ~10 Hz
-        
-        // const imu_data_t* imu = mpu6050_get_data();
-        // printf("Accel (g): X=%.2f Y=%.2f Z=%.2f | Gyro (°/s): X=%.2f Y=%.2f Z=%.2f\n",
-        // imu->ax, imu->ay, imu->az,
-        // imu->gx, imu->gy, imu->gz);
+        mpu6050_update();
+        const imu_data_t* imu = mpu6050_get_data();
 
-        // motor_test(MOTOR1_CHANNEL);
+        filter_update(imu);  // Pass raw sensor data
+        euler_angles_t angles = filter_get_euler();  // Get roll, pitch, yaw
+
+        // control_loop(angles.roll, angles.pitch, angles.yaw);  // Pass into PID
+
+        printf("[Euler] Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f°\n", angles.roll, angles.pitch, angles.yaw);
+
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
+
 }
