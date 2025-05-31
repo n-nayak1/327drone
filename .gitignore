@@ -11,3 +11,4 @@ __pycache__/
 build/
 dist/
 imufusion.egg-info/
+.DS_Store
