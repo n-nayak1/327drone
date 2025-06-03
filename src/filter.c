@@ -4,11 +4,9 @@
 #include "esp_timer.h"
 #include <stdio.h>
 
-#define DEG_TO_RAD(x) ((x) * 0.0174533f)
 #define CALIBRATION_SAMPLES 3000
 
 static FusionAhrs ahrs;
-static FusionOffset offset;
 static FusionEuler cached_euler;
 
 static float pitch_offset = 0.0f;
@@ -26,22 +24,12 @@ static int64_t last_update_us = 0;
 static bool calibration_done = false;
 
 void filter_init() {
-    const int assumed_rate = 100;
-    FusionOffsetInitialise(&offset, assumed_rate);
     FusionAhrsInitialise(&ahrs);
-
-    FusionAhrsSettings settings = {
-        .convention = FusionConventionNwu,
-        .gain = 0.5f,
-        .gyroscopeRange = 2000.0f,
-        .accelerationRejection = 10.0f,
-        .magneticRejection = 10.0f,
-        .recoveryTriggerPeriod = 5 * assumed_rate,
-    };
-    FusionAhrsSetSettings(&ahrs, &settings);
+    // NOTE: No FusionAhrsSetSettings() used — uses default gain
 
     calib_start_us = esp_timer_get_time();
     last_update_us = calib_start_us;
+
     pitch_accum = roll_accum = 0.0f;
     pitch_offset = roll_offset = yaw_drift_rate = 0.0f;
     calib_samples = 0;
@@ -64,7 +52,6 @@ void filter_update(const imu_data_t* imu) {
         .axis.z = imu->az
     };
 
-    gyro = FusionOffsetUpdate(&offset, gyro);
     FusionAhrsUpdateNoMagnetometer(&ahrs, gyro, accel, dt);
 
     cached_euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
