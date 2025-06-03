@@ -1,13 +1,9 @@
-#include "filter.h"
-#include "Fusion.h"
-#include "mpu6050.h"
-#include "esp_timer.h"
-#include <stdio.h>
 
+#include "filter.h"
 #define CALIBRATION_SAMPLES 3000
 
-static FusionAhrs ahrs;
-static FusionEuler cached_euler;
+// Static filter instance
+static MadgwickAHRS filter;
 
 static float pitch_offset = 0.0f;
 static float roll_offset = 0.0f;
@@ -24,8 +20,7 @@ static int64_t last_update_us = 0;
 static bool calibration_done = false;
 
 void filter_init() {
-    FusionAhrsInitialise(&ahrs);
-    // NOTE: No FusionAhrsSetSettings() used — uses default gain
+    MadgwickAHRS_init(&filter, 0.1f, 100.0f);
 
     calib_start_us = esp_timer_get_time();
     last_update_us = calib_start_us;
@@ -41,31 +36,23 @@ void filter_update(const imu_data_t* imu) {
     float dt = (now - last_update_us) / 1e6f;
     last_update_us = now;
 
-    FusionVector gyro = {
-        .axis.x = imu->gx,
-        .axis.y = imu->gy,
-        .axis.z = imu->gz
-    };
-    FusionVector accel = {
-        .axis.x = imu->ax,
-        .axis.y = imu->ay,
-        .axis.z = imu->az
-    };
+    // Run Madgwick filter update
+    MadgwickAHRS_update(&filter, imu->gx, imu->gy, imu->gz, imu->ax, imu->ay, imu->az);
 
-    FusionAhrsUpdateNoMagnetometer(&ahrs, gyro, accel, dt);
-
-    cached_euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
+    float roll  = MadgwickAHRS_getRoll(&filter);
+    float pitch = MadgwickAHRS_getPitch(&filter);
+    float yaw   = MadgwickAHRS_getYaw(&filter);
 
     if (!calibration_done) {
-        pitch_accum += cached_euler.angle.pitch;
-        roll_accum  += cached_euler.angle.roll;
+        pitch_accum += pitch;
+        roll_accum  += roll;
 
         if (calib_samples == 0) {
-            yaw_start = cached_euler.angle.yaw;
+            yaw_start = yaw;
         }
 
         if (calib_samples == CALIBRATION_SAMPLES - 1) {
-            yaw_end = cached_euler.angle.yaw;
+            yaw_end = yaw;
             float elapsed_time = (now - calib_start_us) / 1e6f;
             yaw_drift_rate = (yaw_end - yaw_start) / elapsed_time;
         }
@@ -85,11 +72,11 @@ void filter_update(const imu_data_t* imu) {
 
 euler_angles_t filter_get_euler() {
     float elapsed_time = (esp_timer_get_time() - calib_start_us) / 1e6f;
-    float corrected_yaw = cached_euler.angle.yaw - yaw_drift_rate * elapsed_time;
+    float corrected_yaw = MadgwickAHRS_getYaw(&filter) - yaw_drift_rate * elapsed_time;
 
     return (euler_angles_t) {
-        .roll = cached_euler.angle.roll - roll_offset,
-        .pitch = cached_euler.angle.pitch - pitch_offset,
+        .roll = MadgwickAHRS_getRoll(&filter) - roll_offset,
+        .pitch = MadgwickAHRS_getPitch(&filter) - pitch_offset,
         .yaw = corrected_yaw
     };
 }

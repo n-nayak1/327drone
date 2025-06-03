@@ -1,3 +1,9 @@
 {
-    "idf.port": "/dev/tty.usbserial-10"
+    "idf.port": "/dev/tty.usbserial-10",
+    "files.associations": {
+        "mpu6050.h": "c",
+        "madgwick.hpp": "c",
+        "filter.hpp": "c",
+        "feedback.hpp": "c"
+    }
 }
