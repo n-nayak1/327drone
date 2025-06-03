@@ -1,3 +1,6 @@
+/**
+ * Modified this file to work with my madgwick filter while preserving structure - Milan
+ */
 
 #include "filter.h"
 #define CALIBRATION_SAMPLES 3000
@@ -20,7 +23,11 @@ static int64_t last_update_us = 0;
 static bool calibration_done = false;
 
 void filter_init() {
-    MadgwickAHRS_init(&filter, 0.1f, 100.0f, 1.0f);
+    // This is what you want to tune
+    // First value is beta, or filter gain
+    // Second value is the sampling rate
+    // Third value is the shittyIMU factor, which adjusts the beta depending on how tilted the IMU is. Use it to work against sensor drift
+    MadgwickAHRS_init(&filter, 0.1f, 10.0f, 1.0f);
 
     calib_start_us = esp_timer_get_time();
     last_update_us = calib_start_us;

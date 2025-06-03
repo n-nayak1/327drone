@@ -2,6 +2,7 @@
  * MadgwickAHRS Filter Implementation in C
  * Written by Milan on 6/2/2025
  * Adapted from: https://github.com/arduino-libraries/MadgwickAHRS
+ * Added a shittyIMUFactor to counter gyro dominance at tilts
  */
 
 #include "madgwick.h"
@@ -99,7 +100,7 @@ void MadgwickAHRS_getQuaternion(const MadgwickAHRS* self, float* qw, float* qx, 
 float MadgwickAHRS_getRoll(const MadgwickAHRS* self) {
     float sinr = 2.0f * (self->q0 * self->q1 + self->q2 * self->q3);
     float cosr = 1.0f - 2.0f * (self->q1 * self->q1 + self->q2 * self->q2);
-    return atan2f(sinr, cosr);
+    return atan2f(sinr, cosr) * 180.0f / M_PI;
 }
 
 float MadgwickAHRS_getPitch(const MadgwickAHRS* self) {
@@ -107,11 +108,11 @@ float MadgwickAHRS_getPitch(const MadgwickAHRS* self) {
     if (fabsf(sinp) >= 1.0f)
         return (sinp > 0.0f ? 1.0f : -1.0f) * (M_PI / 2.0f);
     else
-        return asinf(sinp);
+        return asinf(sinp) * 180.0f / M_PI;
 }
 
 float MadgwickAHRS_getYaw(const MadgwickAHRS* self) {
     float siny = 2.0f * (self->q0 * self->q3 + self->q1 * self->q2);
     float cosy = 1.0f - 2.0f * (self->q2 * self->q2 + self->q3 * self->q3);
-    return atan2f(siny, cosy);
+    return atan2f(siny, cosy) * 180.0f / M_PI;
 }
