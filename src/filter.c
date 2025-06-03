@@ -20,7 +20,7 @@ static int64_t last_update_us = 0;
 static bool calibration_done = false;
 
 void filter_init() {
-    MadgwickAHRS_init(&filter, 0.1f, 100.0f);
+    MadgwickAHRS_init(&filter, 0.1f, 100.0f, 1.0f);
 
     calib_start_us = esp_timer_get_time();
     last_update_us = calib_start_us;

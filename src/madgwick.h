@@ -8,11 +8,12 @@
 
 typedef struct {
     float beta;
+    float shittyIMUFactor;
     float sampleFreq;
     float q0, q1, q2, q3;
 } MadgwickAHRS;
 
-void MadgwickAHRS_init(MadgwickAHRS* self, float beta, float sampleFreq);
+void MadgwickAHRS_init(MadgwickAHRS* self, float beta, float sampleFreq, float shittyIMUFactor);
 void MadgwickAHRS_update(MadgwickAHRS* self, float gx, float gy, float gz, float ax, float ay, float az);
 void MadgwickAHRS_getQuaternion(const MadgwickAHRS* self, float* qw, float* qx, float* qy, float* qz);
 float MadgwickAHRS_getRoll(const MadgwickAHRS* self);

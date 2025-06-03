@@ -11,7 +11,8 @@
 #define M_PI 3.14159265358979323846f
 #endif
 
-void MadgwickAHRS_init(MadgwickAHRS* self, float beta, float sampleFreq) {
+void MadgwickAHRS_init(MadgwickAHRS* self, float beta, float sampleFreq, float shittyIMUFactor) {
+    self->shittyIMUFactor = shittyIMUFactor;
     self->beta = beta;
     self->sampleFreq = sampleFreq;
     self->q0 = 1.0f;
@@ -22,6 +23,7 @@ void MadgwickAHRS_init(MadgwickAHRS* self, float beta, float sampleFreq) {
 
 void MadgwickAHRS_update(MadgwickAHRS* self, float gx, float gy, float gz,
                          float ax, float ay, float az) {
+    float betaIncFactor;
     float recipNorm;
     float s0, s1, s2, s3;
     float qDot0, qDot1, qDot2, qDot3;
@@ -34,6 +36,9 @@ void MadgwickAHRS_update(MadgwickAHRS* self, float gx, float gy, float gz,
 
     // Normalize accelerometer
     recipNorm = sqrtf(ax * ax + ay * ay + az * az);
+    // When the accel has a norm > 1, we are flat, so we want drift correction (higher beta)
+    // When the accel has a norm < 1, we are tilted, so we don't want drift correction (lower beta)
+    betaIncFactor = recipNorm * self->shittyIMUFactor;
     if (recipNorm == 0.0f) return;
     recipNorm = 1.0f / recipNorm;
     ax *= recipNorm;
@@ -64,10 +69,10 @@ void MadgwickAHRS_update(MadgwickAHRS* self, float gx, float gy, float gz,
     s3 *= recipNorm;
 
     // Apply feedback step
-    qDot0 -= self->beta * s0;
-    qDot1 -= self->beta * s1;
-    qDot2 -= self->beta * s2;
-    qDot3 -= self->beta * s3;
+    qDot0 -= self->beta * betaIncFactor * s0;
+    qDot1 -= self->beta * betaIncFactor * s1;
+    qDot2 -= self->beta * betaIncFactor * s2;
+    qDot3 -= self->beta * betaIncFactor * s3;
 
     // Integrate to yield quaternion
     q0 += qDot0 / self->sampleFreq;
