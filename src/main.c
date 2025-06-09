@@ -5,6 +5,10 @@
 #include "filter.h"
 #include "rc_control.h"
 
+float DesiredAngleRoll = 0;
+float DesiredAnglePitch = 0;
+int InputThrottle = 0;
+float DesiredRateYaw = 0;
 
 void app_main(void) {
     motor_init(MOTOR1_PIN, MOTOR1_CHANNEL);
@@ -40,6 +44,7 @@ void app_main(void) {
             printf("CH[%d] = %d µs\n", i, ReceiverValue[i]);
         }
         
+
         mpu6050_update();
         const imu_data_t* imu = mpu6050_get_data();
 

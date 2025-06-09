@@ -4,7 +4,7 @@
 #include "driver/gpio.h"
 
 #define TAG "RC_CONTROL"
-#define CYCLES_PER_US 160  // ← just define this ONCE, no redefinition
+#define CYCLES_PER_US 160  // Assuming 160 MHz CPU
 
 // ---------------- GPIO pins ----------------
 const gpio_num_t channel_pins[NUM_CHANNELS] = {
