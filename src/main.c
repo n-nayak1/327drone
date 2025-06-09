@@ -23,6 +23,8 @@ void app_main(void) {
     filter_init();  // or whatever loop rate in Hz
     setup_gpio_interrupts();
 
+    // make sure the controller is connected to the receiver before looping
+    while (ReceiverValue[4] <= 900) {}
 
     while (1) {
         // DesiredAngleRoll  = 0.1f * (ReceiverValue[0] - 1500);
@@ -38,12 +40,13 @@ void app_main(void) {
             InputThrottle = 0;
         }
 
+        // if kill switch on turn the throttle off
         if (ReceiverValue[4] > 1500) {
             InputThrottle = 0;
         }
 
         printf("Input Throttle: %.2d\n", InputThrottle);
-        feedback_set_throttle(InputThrottle);
+        // feedback_set_throttle(InputThrottle);
 
         // printf("Roll: %.2f  Pitch: %.2f  Throttle: %f  YawRate: %.2f\n",
         //        DesiredAngleRoll, DesiredAnglePitch, InputThrottle, DesiredRateYaw);
@@ -66,18 +69,18 @@ void app_main(void) {
         filter_update(imu);
         euler_angles_t angles = filter_get_euler();  // Get roll, pitch, yaw
 
-        if (ReceiverValue[4] < 1500){
-            if (InputThrottle < 20) {
+        if (ReceiverValue[4] < 1500 && ReceiverValue[4] > 0){
+            if (InputThrottle <= 100) {
                 motor_set_speed(MOTOR1_CHANNEL, InputThrottle);
                 motor_set_speed(MOTOR4_CHANNEL, InputThrottle);
                 motor_set_speed(MOTOR3_CHANNEL, InputThrottle);
                 motor_set_speed(MOTOR2_CHANNEL, InputThrottle);
                 printf("direct control");
             }
-            else {
-                control_loop(angles.roll, angles.pitch, DesiredAngleRoll, DesiredAnglePitch);
-                printf("control loop");
-            }
+            // else {
+            //     control_loop(angles.roll, angles.pitch, DesiredAngleRoll, DesiredAnglePitch);
+            //     printf("control loop");
+            // }
         }
         else {
             motor_set_speed(MOTOR1_CHANNEL, 0.f);
@@ -87,7 +90,7 @@ void app_main(void) {
         }
         
 
-        //printf("[Euler] Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f°\n", angles.roll, angles.pitch, angles.yaw);
+        printf("[Euler] Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f°\n", angles.roll, angles.pitch, angles.yaw);
         // motor_set_speed(MOTOR1_CHANNEL, InputThrottle);
         // motor_set_speed(MOTOR2_CHANNEL, InputThrottle);
         // motor_set_speed(MOTOR3_CHANNEL, InputThrottle);

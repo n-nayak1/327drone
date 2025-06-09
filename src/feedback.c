@@ -58,10 +58,10 @@ void control_loop(float measured_roll, float measured_pitch,
                         Kd_roll * derivative_roll;
 
     // --- Motor Mixing ---
-    float m1 = base_throttle + pitch_output + roll_output;  // Front Left
-    float m2 = base_throttle + pitch_output - roll_output;  // Front Right
-    float m3 = base_throttle - pitch_output + roll_output;  // Back Left
-    float m4 = base_throttle - pitch_output - roll_output;  // Back Right
+    float m1 = base_throttle + pitch_output; //+ roll_output;  // Front Left
+    float m2 = base_throttle + pitch_output; //- roll_output;  // Front Right
+    float m3 = base_throttle - pitch_output; //+ roll_output;  // Back Left
+    float m4 = base_throttle - pitch_output; //- roll_output;  // Back Right
 
     // --- Clamp final outputs ---
     m1 = fminf(fmaxf(m1, MIN_THROTTLE), MAX_THROTTLE);
