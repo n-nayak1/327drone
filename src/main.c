@@ -3,17 +3,12 @@
 #include "mpu6050.h"
 #include "feedback.h"
 #include "filter.h"
+#include "rc_control.h"
 
 
 void app_main(void) {
-    motor_init(MOTOR1_PIN, MOTOR1_CHANNEL);
-    motor_init(MOTOR2_PIN, MOTOR2_CHANNEL);
-    motor_init(MOTOR3_PIN, MOTOR3_CHANNEL);
-    motor_init(MOTOR4_PIN, MOTOR4_CHANNEL);
-    mpu6050_init();
-    filter_init();  // or whatever loop rate in Hz
-
-
+    setup_gpio_interrupts();
+    
     while (1) {
         mpu6050_update();
         const imu_data_t* imu = mpu6050_get_data();
