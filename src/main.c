@@ -21,16 +21,16 @@ void app_main(void) {
 
     float DesiredAngleRoll = 0;
     float DesiredAnglePitch = 0;
-    int InputThrottle = 0;
+    float InputThrottle = 0;
     float DesiredRateYaw = 0;
 
     while (1) {
         DesiredAngleRoll  = 0.1f * (ReceiverValue[0] - 1500);
         DesiredAnglePitch = 0.1f * (ReceiverValue[1] - 1500);
-        InputThrottle     = ReceiverValue[2];
+        InputThrottle     = (ReceiverValue[2] - 1000.f)/10.f;
         DesiredRateYaw    = 0.15f * (ReceiverValue[3] - 1500);
 
-        printf("Roll: %.2f  Pitch: %.2f  Throttle: %d  YawRate: %.2f\n",
+        printf("Roll: %.2f  Pitch: %.2f  Throttle: %f  YawRate: %.2f\n",
                DesiredAngleRoll, DesiredAnglePitch, InputThrottle, DesiredRateYaw);
 
         for (int i = 0; i < NUM_CHANNELS; i++) {
@@ -54,10 +54,10 @@ void app_main(void) {
         // control_loop(angles.roll, angles.pitch, angles.yaw);  // Pass into PID
 
         printf("[Euler] Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f°\n", angles.roll, angles.pitch, angles.yaw);
-        motor_set_speed(MOTOR1_CHANNEL, 50);
-        motor_set_speed(MOTOR2_CHANNEL, 50);
-        motor_set_speed(MOTOR3_CHANNEL, 50);
-        motor_set_speed(MOTOR4_CHANNEL, 50);
+        motor_set_speed(MOTOR1_CHANNEL, InputThrottle);
+        motor_set_speed(MOTOR2_CHANNEL, InputThrottle);
+        motor_set_speed(MOTOR3_CHANNEL, InputThrottle);
+        motor_set_speed(MOTOR4_CHANNEL, InputThrottle);
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
