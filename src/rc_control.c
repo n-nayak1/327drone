@@ -1,10 +1,10 @@
-#include <stdio.h>
-#include "driver/gpio.h"
-#include "esp_timer.h"
-#include "esp_log.h"
+#include "rc_control.h"
 #include "esp_attr.h"
+#include "esp_log.h"
+#include "driver/gpio.h"
 
-#define NUM_CHANNELS 6
+#define TAG "RC_CONTROL"
+#define CYCLES_PER_US 160  // Assuming 160 MHz CPU
 
 // ---------------- GPIO pins ----------------
 const gpio_num_t channel_pins[NUM_CHANNELS] = {
@@ -12,36 +12,36 @@ const gpio_num_t channel_pins[NUM_CHANNELS] = {
 };
 
 // ---------------- Globals ----------------
-volatile int64_t timer[NUM_CHANNELS] = {0};
-volatile int last_channel[NUM_CHANNELS] = {0};
-volatile int ReceiverValue[NUM_CHANNELS] = {0};
+volatile uint16_t ReceiverValue[NUM_CHANNELS] = {0};
+volatile bool isr_fired[NUM_CHANNELS] = {false};
+volatile uint32_t start_cycles[NUM_CHANNELS] = {0};
 
-// ---------------- Logging tags ----------------
-static const char* TAG_GPIO = "GPIO_SETUP";
+// ---------------- Simple cycle counter ----------------
+static inline uint32_t esp_cpu_get_ccount(void)
+{
+    uint32_t ccount;
+    __asm__ __volatile__("rsr.ccount %0" : "=a" (ccount));
+    return ccount;
+}
 
-// ---------------- ISR declaration ----------------
-static void channelInterruptHandler(void* arg);
-
-// ---------------- ISR definition ----------------
+// ---------------- ISR ----------------
 static void IRAM_ATTR channelInterruptHandler(void* arg)
 {
     int index = (int)(uintptr_t)arg;
     int pin = channel_pins[index];
     int level = gpio_get_level(pin);
-    int64_t current_time = esp_timer_get_time();
+    uint32_t now = esp_cpu_get_ccount();
 
     if (level) {
-        if (!last_channel[index]) {
-            last_channel[index] = 1;
-            timer[index] = current_time;
-        }
-    } else if (last_channel[index]) {
-        last_channel[index] = 0;
-        ReceiverValue[index] = current_time - timer[index];
+        start_cycles[index] = now;
+    } else {
+        uint32_t delta = now - start_cycles[index];
+        ReceiverValue[index] = delta / CYCLES_PER_US;
+        isr_fired[index] = true;
     }
 }
 
-// ---------------- GPIO setup ----------------
+// ---------------- GPIO Setup ----------------
 void setup_gpio_interrupts()
 {
     gpio_config_t io_conf = {
@@ -63,5 +63,5 @@ void setup_gpio_interrupts()
         ESP_ERROR_CHECK(gpio_isr_handler_add(channel_pins[i], channelInterruptHandler, (void*)(uintptr_t)i));
     }
 
-    ESP_LOGI(TAG_GPIO, "Configured %d GPIOs with interrupts.", NUM_CHANNELS);
+    ESP_LOGI(TAG, "Configured %d GPIOs for RC PWM input", NUM_CHANNELS);
 }
