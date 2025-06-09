@@ -4,87 +4,74 @@
 #include <stdio.h>
 #include <math.h>
 
-// PID constants (P-only for now)
-#define BASE_THROTTLE 50.0f
+// Limits
 #define MAX_THROTTLE 100.0f
 #define MIN_THROTTLE 0.0f
 
-// PID constants for each axis
-static const float Kp_pitch = 1.0f, Ki_pitch = 0.0f, Kd_pitch = 0.1f;
-static const float Kp_roll  = 1.0f, Ki_roll  = 0.0f, Kd_roll  = 0.1f;
-static const float Kp_yaw   = 1.0f, Ki_yaw   = 0.0f, Kd_yaw   = 0.1f;
+// PID constants
+static const float Kp_pitch = 2.0f, Ki_pitch = 0.5f, Kd_pitch = 0.1f;
+static const float Kp_roll  = 2.0f, Ki_roll  = 0.5f, Kd_roll  = 0.1f;
 
-// Error tracking variables
+// State tracking
 static float pitch_integral = 0, pitch_last = 0;
 static float roll_integral  = 0, roll_last  = 0;
-static float yaw_integral   = 0, yaw_last   = 0;
 
-void apply_pid_feedback(control_axis_t axis, float measured, float setpoint,
-                        float Kp, float Ki, float Kd,
-                        float* integral_error, float* last_error) {
-    float error = setpoint - measured;
-    *integral_error += error;
-    float derivative = error - *last_error;
-    *last_error = error;
+// External throttle input from RC
+static float base_throttle = 0;
 
-    float correction = Kp * error + Ki * (*integral_error) + Kd * derivative;
+void feedback_set_throttle(float t) {
+    base_throttle = fminf(fmaxf(t, MIN_THROTTLE), MAX_THROTTLE);
+}
 
-    // Start with base throttle
-    float m1 = BASE_THROTTLE;
-    float m2 = BASE_THROTTLE;
-    float m3 = BASE_THROTTLE;
-    float m4 = BASE_THROTTLE;
+void control_loop(float measured_roll, float measured_pitch,
+                  float desired_roll, float desired_pitch) {
 
-    // Apply correction to motors depending on the axis
-    switch (axis) {
-        case AXIS_PITCH:
-            // Forward/backward tilt
-            m1 += correction;  // Front Left
-            m2 += correction;  // Front Right
-            m3 -= correction;  // Back Left
-            m4 -= correction;  // Back Right
-            break;
-        case AXIS_ROLL:
-            // Left/right tilt
-            m1 += correction;  // Front Left
-            m2 -= correction;  // Front Right
-            m3 += correction;  // Back Left
-            m4 -= correction;  // Back Right
-            break;
-        case AXIS_YAW:
-            // Opposing motor pairs spin faster/slower
-            m1 += correction;
-            m2 -= correction;
-            m3 += correction;
-            m4 -= correction;
-            break;
-    }
+    float error_pitch = desired_pitch - measured_pitch;
+    float error_roll  = desired_roll - measured_roll;
 
-    // Clamp each motor
+    // --- Anti-windup clamp range ---
+    const float I_CLAMP_MIN = -200.0f;
+    const float I_CLAMP_MAX =  200.0f;
+
+    // --- Pitch PID ---
+    pitch_integral += error_pitch;
+    if (pitch_integral > I_CLAMP_MAX) pitch_integral = I_CLAMP_MAX;
+    if (pitch_integral < I_CLAMP_MIN) pitch_integral = I_CLAMP_MIN;
+
+    float derivative_pitch = error_pitch - pitch_last;
+    pitch_last = error_pitch;
+
+    float pitch_output = Kp_pitch * error_pitch +
+                         Ki_pitch * pitch_integral +
+                         Kd_pitch * derivative_pitch;
+
+    // --- Roll PID ---
+    roll_integral += error_roll;
+    if (roll_integral > I_CLAMP_MAX) roll_integral = I_CLAMP_MAX;
+    if (roll_integral < I_CLAMP_MIN) roll_integral = I_CLAMP_MIN;
+
+    float derivative_roll = error_roll - roll_last;
+    roll_last = error_roll;
+
+    float roll_output = Kp_roll * error_roll +
+                        Ki_roll * roll_integral +
+                        Kd_roll * derivative_roll;
+
+    // --- Motor Mixing ---
+    float m1 = base_throttle + pitch_output + roll_output;  // Front Left
+    float m2 = base_throttle + pitch_output - roll_output;  // Front Right
+    float m3 = base_throttle - pitch_output + roll_output;  // Back Left
+    float m4 = base_throttle - pitch_output - roll_output;  // Back Right
+
+    // --- Clamp final outputs ---
     m1 = fminf(fmaxf(m1, MIN_THROTTLE), MAX_THROTTLE);
     m2 = fminf(fmaxf(m2, MIN_THROTTLE), MAX_THROTTLE);
     m3 = fminf(fmaxf(m3, MIN_THROTTLE), MAX_THROTTLE);
     m4 = fminf(fmaxf(m4, MIN_THROTTLE), MAX_THROTTLE);
 
-    // Set motor speeds
+    // --- Output to motors ---
     motor_set_speed(MOTOR1_CHANNEL, m1);
     motor_set_speed(MOTOR2_CHANNEL, m2);
     motor_set_speed(MOTOR3_CHANNEL, m3);
     motor_set_speed(MOTOR4_CHANNEL, m4);
-
-    // Optional debug
-    printf("[PID] axis: %d | error: %.2f | correction: %.2f\n", axis, error, correction);
-}
-
-
-void control_loop(float roll, float pitch, float yaw) {
-    apply_pid_feedback(AXIS_PITCH, pitch, 0.0f,
-                       Kp_pitch, Ki_pitch, Kd_pitch,
-                       &pitch_integral, &pitch_last);
-    apply_pid_feedback(AXIS_ROLL, roll, 0.0f,
-                       Kp_roll, Ki_roll, Kd_roll,
-                       &roll_integral, &roll_last);
-    apply_pid_feedback(AXIS_YAW, yaw, 0.0f,
-                       Kp_yaw, Ki_yaw, Kd_yaw,
-                       &yaw_integral, &yaw_last);
 }

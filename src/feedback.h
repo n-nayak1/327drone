@@ -11,7 +11,20 @@ typedef enum {
     AXIS_YAW
 } control_axis_t;
 
-void control_loop(float roll, float pitch, float yaw);
+/**
+ * @brief Sets the base throttle for all motors [0–100%].
+ */
+void feedback_set_throttle(float base_throttle);
 
+/**
+ * @brief Computes and applies PID corrections to roll and pitch.
+ * 
+ * @param measured_roll   Current roll angle (°)
+ * @param measured_pitch  Current pitch angle (°)
+ * @param desired_roll    Target roll angle from RC (°)
+ * @param desired_pitch   Target pitch angle from RC (°)
+ */
+void control_loop(float measured_roll, float measured_pitch,
+                  float desired_roll, float desired_pitch);
 
-#endif
+#endif // FEEDBACK_H

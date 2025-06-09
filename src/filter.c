@@ -27,7 +27,7 @@ void filter_init() {
     // First value is beta, or filter gain
     // Second value is the sampling rate
     // Third value is the shittyIMU factor, which adjusts the beta depending on how tilted the IMU is. Use it to work against sensor drift
-    MadgwickAHRS_init(&filter, 0.05f, 10.0f, 1.0f);
+    MadgwickAHRS_init(&filter, 0.1f, 10.0f, 1.0f);
 
     calib_start_us = esp_timer_get_time();
     last_update_us = calib_start_us;

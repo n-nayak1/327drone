@@ -1,3 +1,4 @@
 {
+    "idf.port": "/dev/tty.usbserial-0001"
     
 }
