@@ -69,7 +69,7 @@ void app_main(void) {
         filter_update(imu);
         euler_angles_t angles = filter_get_euler();  // Get roll, pitch, yaw
 
-        if (ReceiverValue[4] < 1500 && ReceiverValue[4] > 0){
+        if (ReceiverValue[4] < 1500 && ReceiverValue[4] > 500){
             if (InputThrottle <= 100) {
                 motor_set_speed(MOTOR1_CHANNEL, InputThrottle);
                 motor_set_speed(MOTOR4_CHANNEL, InputThrottle);
