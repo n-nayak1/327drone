@@ -1,6 +1,6 @@
 /**
  * MadgwickAHRS Filter Implementation in C
- * Written by Milan on 6/2/2025
+ * Written by Milan on 6/2/2025 (thank you Milan!!!)
  * Adapted from: https://github.com/arduino-libraries/MadgwickAHRS
  * Added a shittyIMUFactor to counter gyro dominance at tilts
  */

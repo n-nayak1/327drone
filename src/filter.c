@@ -1,7 +1,3 @@
-/**
- * Modified this file to work with my madgwick filter while preserving structure - Milan
- */
-
 #include "filter.h"
 #define CALIBRATION_SAMPLES 3000
 
