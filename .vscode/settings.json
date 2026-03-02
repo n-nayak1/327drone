@@ -2,6 +2,7 @@
     "idf.port": "/dev/tty.usbserial-0001",
     "files.associations": {
         "madgwick.h": "c"
-    }
+    },
+    "idf.currentSetup": "/Users/nikhilnayak/esp/esp-idf"
     
 }
